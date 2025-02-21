@@ -47,23 +47,38 @@
             gap: 20px;
         }
 
-        .student-card {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
-        }
-
         .student-card:hover {
             transform: translateY(-5px);
         }
 
+        .student-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .student-header {
+            display: flex;
+            align-items: center;
+        }
+
+        .student-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #fff;
+            transition: transform 0.2s;
+        }
+
+        .student-thumbnail {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
         .student-card h3 {
-            color: #2c3e50;
-            margin-top: 0;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
+            margin: 0;
         }
 
         .loading {
@@ -102,109 +117,57 @@
 <body>
     <h1>Sistema de Gestión de Estudiantes</h1>
 
-    <div class="status" id="connection-status">Estado: Verificando conexión...</div>
-
-    <div class="controls">
-        <button id="fetch-btn">Cargar Estudiantes</button>
-        <span id="total-count"></span>
-    </div>
-
     <div id="error-container"></div>
 
     <div id="students-container">
         <p class="loading">Esperando para cargar datos...</p>
     </div>
 
-    <div class="info">
-        <h3>Información sobre la conexión API</h3>
-        <p>URL del endpoint: <code
-                id="api-url">https://67ad621d3f5a4e1477dd819c.mockapi.io/api/dmc/students/student</code></p>
-        <p>Método: <strong>GET</strong></p>
-        <p>Última solicitud: <span id="last-request">Ninguna</span></p>
-        <p>Estado de la última solicitud: <span id="last-status">N/A</span></p>
+    <div id="new-student-form">
+        <h2>Registrar Nuevo Estudiante</h2>
+        <form id="student-form">
+          <label for="name">Nombre:</label>
+          <input type="text" id="name" name="name" required>
+          <label for="name">Apellido:</label>
+            <input type="text" id="lastname" name="lastname" required>
+
+            <label for="grade">Grado:</label>
+            <input type="text" id="grade" name="grade" required>
+
+            <label for="age">Edad:</label>
+            <input type="number" id="age" name="age">
+            <br>
+            <label for="picture">Imagen url:</label>
+            <input type="text" id="picture" name="picture">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email">
+            <button type="submit">Registrar</button>
+        </form>
     </div>
 
     <script>
-        // Elementos del DOM
-        const fetchButton = document.getElementById('fetch-btn');
         const studentsContainer = document.getElementById('students-container');
         const errorContainer = document.getElementById('error-container');
-        const connectionStatus = document.getElementById('connection-status');
-        const totalCount = document.getElementById('total-count');
-        const lastRequest = document.getElementById('last-request');
-        const lastStatus = document.getElementById('last-status');
-
-        // URL de la API
-        const API_URL = 'https://67ad621d3f5a4e1477dd819c.mockapi.io/api/dmc/students/student';
-
-        // Verificar la conexión cuando se carga la página
-        document.addEventListener('DOMContentLoaded', checkApiConnection);
-
-        // Agregar event listener al botón
-        fetchButton.addEventListener('click', fetchStudents);
-
-        // Función para verificar la conexión a la API
-        async function checkApiConnection() {
-            connectionStatus.textContent = 'Estado: Verificando conexión...';
-            connectionStatus.style.backgroundColor = '#fff3cd';
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'HEAD',
-                });
-
-                if (response.ok) {
-                    connectionStatus.textContent = 'Estado: Conectado a la API correctamente';
-                    connectionStatus.style.backgroundColor = '#d4edda';
-                } else {
-                    connectionStatus.textContent = `Estado: Error de conexión (${response.status})`;
-                    connectionStatus.style.backgroundColor = '#f8d7da';
-                }
-            } catch (error) {
-                connectionStatus.textContent = `Estado: No se pudo conectar a la API (${error.message})`;
-                connectionStatus.style.backgroundColor = '#f8d7da';
-            }
-        }
-
-        // Función principal para obtener estudiantes mediante GET
+        const API_URL = 'http://localhost:3005/api/v1/students';
         async function fetchStudents() {
-            // Mostrar estado de carga
             studentsContainer.innerHTML = '<p class="loading">Cargando estudiantes...</p>';
             errorContainer.innerHTML = '';
 
-            // Registrar el tiempo de la solicitud
-            const requestTime = new Date();
-            lastRequest.textContent = requestTime.toLocaleTimeString();
-
             try {
-                // **AQUÍ ES DONDE HACEMOS LA PETICIÓN GET**
                 const response = await fetch(API_URL);
-
-                // Actualizar estado de la última solicitud
-                lastStatus.textContent = `${response.status} ${response.statusText}`;
-
-                // Verificar si la respuesta es correcta
                 if (!response.ok) {
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
 
-                // Convertir la respuesta a JSON
                 const students = await response.json();
 
-                // Actualizar contador total
-                totalCount.textContent = `Total: ${students.length} estudiantes`;
-
-                // Verificar si hay estudiantes
                 if (students.length === 0) {
                     studentsContainer.innerHTML = '<p class="loading">No se encontraron estudiantes en la base de datos.</p>';
                     return;
                 }
-
-                // Crear la cuadrícula para mostrar estudiantes
                 displayStudents(students);
 
             } catch (error) {
-                // Manejar errores
                 errorContainer.innerHTML = `
           <div class="error">
             <p><strong>Error al obtener datos:</strong> ${error.message}</p>
@@ -215,39 +178,94 @@
             }
         }
 
-        // Función para mostrar los estudiantes en la interfaz
         function displayStudents(students) {
-            // Crear contenedor para la cuadrícula
             const studentGrid = document.createElement('div');
             studentGrid.className = 'student-grid';
-
-            // Generar una tarjeta para cada estudiante
             students.forEach(student => {
                 const card = document.createElement('div');
                 card.className = 'student-card';
 
-                // Construir el contenido de la tarjeta basado en los datos del estudiante
                 card.innerHTML = `
-          <h3>${student.name || 'Estudiante sin nombre'}</h3>
-          <p><strong>ID:</strong> ${student.id}</p>
-          <p><strong>Email:</strong> ${student.email || 'No disponible'}</p>
-          ${student.age ? `<p><strong>Edad:</strong> ${student.age}</p>` : ''}
-          ${student.course ? `<p><strong>Curso:</strong> ${student.course}</p>` : ''}
-          <button onclick="viewDetails('${student.id}')">Ver detalles</button>
-        `;
+                    <div class="student-header">
+                        <img src="${student.picture || 'default-image.jpg'}" alt="${student.name || 'Estudiante sin nombre'}" class="student-thumbnail">
+                        <h3>${student.name || 'Estudiante sin nombre'}</h3>
+                    </div>
+                    <p><strong>ID:</strong> ${student.id}</p>
+                    <p><strong>Email:</strong> ${student.email || 'No disponible'}</p>
+                    ${student.age ? `<p><strong>Edad:</strong> ${student.age}</p>` : ''}
+                    ${student.course ? `<p><strong>Curso:</strong> ${student.course}</p>` : ''}
+                    <button onclick="viewDetails('${student.id}')">Ver detalles</button>
+                    <button onclick="deleteStudent('${student.id}')">Eliminar</button>
+                `;
 
                 studentGrid.appendChild(card);
             });
-
-            // Reemplazar el contenido del contenedor con la cuadrícula
             studentsContainer.innerHTML = '';
             studentsContainer.appendChild(studentGrid);
         }
 
-        // Función para ver detalles de un estudiante
         function viewDetails(id) {
             alert(`Obteniendo detalles del estudiante ${id}...\nEsta funcionalidad se implementará en una futura versión.`);
         }
+
+        async function registerStudent(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const studentData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(studentData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const newStudent = await response.json();
+                fetchStudents();
+                form.reset();
+
+            } catch (error) {
+                errorContainer.innerHTML = `
+                    <div class="error">
+                        <p><strong>Error al registrar estudiante:</strong> ${error.message}</p>
+                        <p>Verifica que la API esté disponible y que tu conexión a internet funcione correctamente.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function deleteStudent(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                fetchStudents();
+
+            } catch (error) {
+                errorContainer.innerHTML = `
+                    <div class="error">
+                        <p><strong>Error al eliminar estudiante:</strong> ${error.message}</p>
+                        <p>Verifica que la API esté disponible y que tu conexión a internet funcione correctamente.</p>
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('student-form').addEventListener('submit', registerStudent);
+
+        fetchStudents();
     </script>
 </body>
 
