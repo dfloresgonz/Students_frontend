@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumo de API - Estudiantes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .student-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .student-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .student-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .student-card h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status {
+            background-color: #e3f2fd;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #edf7ed;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sistema de Gestión de Estudiantes</h1>
+
+    <div class="status" id="connection-status">Estado: Verificando conexión...</div>
+
+    <div class="controls">
+        <button id="fetch-btn">Cargar Estudiantes</button>
+        <span id="total-count"></span>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div id="students-container">
+        <p class="loading">Esperando para cargar datos...</p>
+    </div>
+
+    <div class="info">
+        <h3>Información sobre la conexión API</h3>
+        <p>URL del endpoint: <code
+                id="api-url">https://67ad621d3f5a4e1477dd819c.mockapi.io/api/dmc/students/student</code></p>
+        <p>Método: <strong>GET</strong></p>
+        <p>Última solicitud: <span id="last-request">Ninguna</span></p>
+        <p>Estado de la última solicitud: <span id="last-status">N/A</span></p>
+    </div>
+
+    <script>
+        // Elementos del DOM
+        const fetchButton = document.getElementById('fetch-btn');
+        const studentsContainer = document.getElementById('students-container');
+        const errorContainer = document.getElementById('error-container');
+        const connectionStatus = document.getElementById('connection-status');
+        const totalCount = document.getElementById('total-count');
+        const lastRequest = document.getElementById('last-request');
+        const lastStatus = document.getElementById('last-status');
+
+        // URL de la API
+        const API_URL = 'https://67ad621d3f5a4e1477dd819c.mockapi.io/api/dmc/students/student';
+
+        // Verificar la conexión cuando se carga la página
+        document.addEventListener('DOMContentLoaded', checkApiConnection);
+
+        // Agregar event listener al botón
+        fetchButton.addEventListener('click', fetchStudents);
+
+        // Función para verificar la conexión a la API
+        async function checkApiConnection() {
+            connectionStatus.textContent = 'Estado: Verificando conexión...';
+            connectionStatus.style.backgroundColor = '#fff3cd';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'HEAD',
+                });
+
+                if (response.ok) {
+                    connectionStatus.textContent = 'Estado: Conectado a la API correctamente';
+                    connectionStatus.style.backgroundColor = '#d4edda';
+                } else {
+                    connectionStatus.textContent = `Estado: Error de conexión (${response.status})`;
+                    connectionStatus.style.backgroundColor = '#f8d7da';
+                }
+            } catch (error) {
+                connectionStatus.textContent = `Estado: No se pudo conectar a la API (${error.message})`;
+                connectionStatus.style.backgroundColor = '#f8d7da';
+            }
+        }
+
+        // Función principal para obtener estudiantes mediante GET
+        async function fetchStudents() {
+            // Mostrar estado de carga
+            studentsContainer.innerHTML = '<p class="loading">Cargando estudiantes...</p>';
+            errorContainer.innerHTML = '';
+
+            // Registrar el tiempo de la solicitud
+            const requestTime = new Date();
+            lastRequest.textContent = requestTime.toLocaleTimeString();
+
+            try {
+                // **AQUÍ ES DONDE HACEMOS LA PETICIÓN GET**
+                const response = await fetch(API_URL);
+
+                // Actualizar estado de la última solicitud
+                lastStatus.textContent = `${response.status} ${response.statusText}`;
+
+                // Verificar si la respuesta es correcta
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                // Convertir la respuesta a JSON
+                const students = await response.json();
+
+                // Actualizar contador total
+                totalCount.textContent = `Total: ${students.length} estudiantes`;
+
+                // Verificar si hay estudiantes
+                if (students.length === 0) {
+                    studentsContainer.innerHTML = '<p class="loading">No se encontraron estudiantes en la base de datos.</p>';
+                    return;
+                }
+
+                // Crear la cuadrícula para mostrar estudiantes
+                displayStudents(students);
+
+            } catch (error) {
+                // Manejar errores
+                errorContainer.innerHTML = `
+          <div class="error">
+            <p><strong>Error al obtener datos:</strong> ${error.message}</p>
+            <p>Verifica que la API esté disponible y que tu conexión a internet funcione correctamente.</p>
+          </div>
+        `;
+                studentsContainer.innerHTML = '';
+            }
+        }
+
+        // Función para mostrar los estudiantes en la interfaz
+        function displayStudents(students) {
+            // Crear contenedor para la cuadrícula
+            const studentGrid = document.createElement('div');
+            studentGrid.className = 'student-grid';
+
+            // Generar una tarjeta para cada estudiante
+            students.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+
+                // Construir el contenido de la tarjeta basado en los datos del estudiante
+                card.innerHTML = `
+          <h3>${student.name || 'Estudiante sin nombre'}</h3>
+          <p><strong>ID:</strong> ${student.id}</p>
+          <p><strong>Email:</strong> ${student.email || 'No disponible'}</p>
+          ${student.age ? `<p><strong>Edad:</strong> ${student.age}</p>` : ''}
+          ${student.course ? `<p><strong>Curso:</strong> ${student.course}</p>` : ''}
+          <button onclick="viewDetails('${student.id}')">Ver detalles</button>
+        `;
+
+                studentGrid.appendChild(card);
+            });
+
+            // Reemplazar el contenido del contenedor con la cuadrícula
+            studentsContainer.innerHTML = '';
+            studentsContainer.appendChild(studentGrid);
+        }
+
+        // Función para ver detalles de un estudiante
+        function viewDetails(id) {
+            alert(`Obteniendo detalles del estudiante ${id}...\nEsta funcionalidad se implementará en una futura versión.`);
+        }
+    </script>
+</body>
+
+</html>
