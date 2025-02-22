@@ -111,6 +111,45 @@
             background-color: #edf7ed;
             border-radius: 5px;
         }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -145,16 +184,26 @@
         </form>
     </div>
 
+    <!-- Modal -->
+    <div id="notesModal" class="modal">
+      <div class="modal-content">
+          <span class="close" onclick="closeModal()">&times;</span>
+          <h2>Notas del Estudiante</h2>
+          <div id="notes-container"></div>
+      </div>
+    </div>
+
     <script>
         const studentsContainer = document.getElementById('students-container');
         const errorContainer = document.getElementById('error-container');
-        const API_URL = 'https://work.smiledu.com/api/v1/students';
+        // const API_URL = 'http://localhost:3005';
+        const API_URL = 'https://work.smiledu.com';
         async function fetchStudents() {
             studentsContainer.innerHTML = '<p class="loading">Cargando estudiantes...</p>';
             errorContainer.innerHTML = '';
 
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(`${API_URL}/api/v1/students`);
                 if (!response.ok) {
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
@@ -196,6 +245,7 @@
                     ${student.course ? `<p><strong>Curso:</strong> ${student.course}</p>` : ''}
                     <button onclick="viewDetails('${student.id}')">Ver detalles</button>
                     <button onclick="deleteStudent('${student.id}')">Eliminar</button>
+                    <button onclick="viewNotes('${student.id}')">Ver Notas</button>
                 `;
 
                 studentGrid.appendChild(card);
@@ -215,7 +265,7 @@
             const studentData = Object.fromEntries(formData.entries());
 
             try {
-                const response = await fetch(API_URL, {
+                const response = await fetch(`${API_URL}/api/v1/students`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -261,6 +311,39 @@
                     </div>
                 `;
             }
+        }
+
+        async function viewNotes(studentId) {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/courses/notas/student/${studentId}`);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const notes = await response.json();
+                const notesContainer = document.getElementById('notes-container');
+                notesContainer.innerHTML = '';
+
+                notes.forEach(note => {
+                    const noteElement = document.createElement('p');
+                    noteElement.innerText = `Curso: ${note.data.Curso}, Nota: ${note.data.Nota}`;
+                    notesContainer.appendChild(noteElement);
+                });
+
+                document.getElementById('notesModal').style.display = 'block';
+
+            } catch (error) {
+                errorContainer.innerHTML = `
+                    <div class="error">
+                        <p><strong>Error al obtener notas:</strong> ${error.message}</p>
+                        <p>Verifica que la API esté disponible y que tu conexión a internet funcione correctamente.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('notesModal').style.display = 'none';
         }
 
         document.getElementById('student-form').addEventListener('submit', registerStudent);
