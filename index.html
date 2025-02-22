@@ -150,6 +150,22 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        .notes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .notes-table th, .notes-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .notes-table th {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 
@@ -189,7 +205,16 @@
       <div class="modal-content">
           <span class="close" onclick="closeModal()">&times;</span>
           <h2>Notas del Estudiante</h2>
-          <div id="notes-container"></div>
+          <table class="notes-table">
+            <thead>
+                <tr>
+                    <th>Curso</th>
+                    <th>Nota</th>
+                    <th>Actualizar Nota</th>
+                </tr>
+            </thead>
+            <tbody id="notes-container"></tbody>
+        </table>
       </div>
     </div>
 
@@ -293,7 +318,7 @@
 
         async function deleteStudent(id) {
             try {
-                const response = await fetch(`${API_URL}/${id}`, {
+                const response = await fetch(`${API_URL}/api/v1/students/${id}`, {
                     method: 'DELETE'
                 });
 
@@ -325,8 +350,17 @@
                 notesContainer.innerHTML = '';
 
                 notes.forEach(note => {
-                    const noteElement = document.createElement('p');
-                    noteElement.innerText = `Curso: ${note.data.Curso}, Nota: ${note.data.Nota}`;
+                    const noteElement = document.createElement('tr');
+                    const studentId = note.pkgsi.split("#")[1];
+                    const courseId = note.skgsi.split("#")[1];
+                    noteElement.innerHTML = `
+                        <td>${note.data.Curso}</td>
+                        <td>${note.data.Nota}</td>
+                        <td>
+                            <input type="text" id="grade-${courseId}" value="${note.data.Nota}">
+                            <button onclick="updateGrade('${studentId}', '${courseId}')">Actualizar</button>
+                        </td>
+                    `;
                     notesContainer.appendChild(noteElement);
                 });
 
@@ -336,6 +370,38 @@
                 errorContainer.innerHTML = `
                     <div class="error">
                         <p><strong>Error al obtener notas:</strong> ${error.message}</p>
+                        <p>Verifica que la API esté disponible y que tu conexión a internet funcione correctamente.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function updateGrade(studentId, courseId) {
+          console.log(studentId, courseId);
+          
+            const gradeInput = document.getElementById(`grade-${courseId}`);
+            const newGrade = gradeInput.value;
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/courses/${courseId}/student/${studentId}/grade`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ newGrade: newGrade })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                alert('Nota actualizada exitosamente');
+                viewNotes(studentId);
+
+            } catch (error) {
+                errorContainer.innerHTML = `
+                    <div class="error">
+                        <p><strong>Error al actualizar nota:</strong> ${error.message}</p>
                         <p>Verifica que la API esté disponible y que tu conexión a internet funcione correctamente.</p>
                     </div>
                 `;
